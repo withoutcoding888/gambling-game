@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siêu Casino: Slot, Blackjack, Texas Hold'em</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1> H20 CLUB</h1>
+    
+    <div class="wallet-container">
+        TÀI KHOẢN: <span id="global-balance">100000</span> $
+    </div>
+    
+    <div class="nav-tabs">
+        <div class="tab active" onclick="switchTab('slot')">JACKPOT SLOT</div>
+        <div class="tab" onclick="switchTab('blackjack')">BLACKJACK 3D</div>
+        <div class="tab" onclick="switchTab('poker')">TEXAS HOLD'EM</div>
+    </div>
+
+    <!-- ================= 1. GAME SLOT MACHINE (NEON LEVER) ================= -->
+    <div id="slot" class="game-section active">
+        
+        <div class="slot-wrapper">
+            <div class="slot-machine-pro">
+                <div class="neon-sign">777 CASINO</div>
+                <div class="reels-pro">
+                    <div class="reel-item" id="reel1">💎</div>
+                    <div class="reel-item" id="reel2">💎</div>
+                    <div class="reel-item" id="reel3">💎</div>
+                </div>
+                <div class="slot-display-panel" id="msg-slot">
+                    KÉO CẦN ĐỂ BẮT ĐẦU
+                </div>
+            </div>
+            
+            <div class="lever-container">
+                <div class="lever-base"></div>
+                <div class="lever-arm-wrapper" id="slot-lever" onclick="pullLever()">
+                    <div class="lever-arm"></div>
+                    <div class="lever-knob"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢNG CƯỢC NEON DƯỚI MÁY SLOT -->
+        <div class="cyber-panel" id="slot-bet-area">
+            <p>ĐẶT CƯỢC MỖI LẦN GẠT (JACKPOT x30)</p>
+            <div class="input-group">
+                <input type="number" id="slot-bet-input" class="bet-input" value="10" min="10" step="10">
+            </div>
+        </div>
+        
+        <p style="color: #aaa; margin-top: 10px;">*Nhấp vào quả cầu đỏ hoặc cần gạt để quay</p>
+    </div>
+
+    <!-- ================= 2. GAME BLACKJACK ================= -->
+    <div id="blackjack" class="game-section">
+        <div class="standard-board">
+            
+            <!-- BẢNG CƯỢC NEON BLACKJACK -->
+            <div class="cyber-panel" id="bj-bet-area" style="margin-bottom: 20px;">
+                <p>MỨC CƯỢC (THẮNG x2 | BJ x2.5)</p>
+                <div class="input-group">
+                    <input type="number" id="bj-bet-input" class="bet-input" value="50" min="10" step="10">
+                    <button onclick="startBlackjack()" class="btn btn-yellow" style="margin:0;">CHIA BÀI</button>
+                </div>
+            </div>
+            
+            <div class="bj-title">Bài Nhà Cái <span id="bj-dealer-score" class="bj-score"></span></div>
+            <div id="bj-dealer-hand" class="bj-hand"></div>
+            
+            <div class="bj-title">Bài Của Bạn <span id="bj-player-score" class="bj-score"></span></div>
+            <div id="bj-player-hand" class="bj-hand"></div>
+
+            <div id="bj-play-btns" style="display:none; justify-content: center;">
+                <button onclick="hitBlackjack()" class="btn btn-green">RÚT BÀI (HIT)</button>
+                <button onclick="standBlackjack()" class="btn btn-red">DẰN BÀI (STAND)</button>
+            </div>
+            
+            <!-- Nút chơi lại căn giữa -->
+            <button onclick="resetBlackjack()" id="btn-bj-restart" class="btn btn-yellow bj-center-btn" style="display: none;">CHƠI LẠI VÁN MỚI</button>
+
+            <div class="slot-display-panel" id="msg-bj" style="border-color:#ff0055; color:#fff; font-size:16px;">Sẵn sàng đánh bại Nhà Cái!</div>
+        </div>
+    </div>
+
+    <!-- ================= 3. GAME POKER (TEXAS HOLD'EM) ================= -->
+    <div id="poker" class="game-section">
+        <div class="poker-table">
+            <div class="table-line"></div>
+            
+            <div class="player-box dealer-box">
+                <div class="hand-cards" id="pk-dealer-hand"></div>
+                <div class="info-panel">
+                    <div class="name">Dealer</div><div class="balance">Nhà Cái</div>
+                    <div id="pk-dealer-rank" class="rank-badge" style="display:none; background:#f39c12;"></div>
+                </div>
+            </div>
+            
+            <div style="z-index: 2; display: flex; flex-direction: column; align-items: center;">
+                <div class="pot-display">TỔNG POT: <span id="pk-pot">0</span>$</div>
+                <div class="comm-cards" id="pk-community-hand">
+                    <div class="card-empty"></div><div class="card-empty"></div><div class="card-empty"></div><div class="card-empty"></div><div class="card-empty"></div>
+                </div>
+            </div>
+            
+            <div class="player-box you-box">
+                <div class="info-panel">
+                    <div class="name">Player 1 (Bạn)</div><div class="balance" id="pk-my-balance">100000</div>
+                    <div id="pk-player-rank" class="rank-badge" style="display:none;"></div>
+                </div>
+                <div class="hand-cards" id="pk-player-hand"></div>
+            </div>
+        </div>
+
+        <div class="action-area">
+            <div class="bet-slider-panel" id="bet-panel">
+                <div class="bet-slider-header">
+                    <span>CHỌN MỨC TỐ:</span><span class="bet-amount-text"><span id="slider-val">50</span>$</span>
+                </div>
+                <div class="quick-bet-row">
+                    <button class="btn-quick" onclick="setQuickBet(0.25)">Tố 1/4</button>
+                    <button class="btn-quick" onclick="setQuickBet(0.5)">Tố 1/2</button>
+                    <button class="btn-quick" onclick="setQuickBet(1)">Bằng Pot</button>
+                    <button class="btn-quick" onclick="setQuickBet('allin')">All-in</button>
+                </div>
+                <input type="range" id="bet-slider" min="50" max="100000" value="50" oninput="updateSliderText(this.value)">
+                <div class="bet-confirm-row">
+                    <button class="btn btn-red" style="flex:1" onclick="toggleBetPanel(false)">Hủy</button>
+                    <button class="btn btn-green" style="flex:2" onclick="confirmBet()">XÁC NHẬN TỐ</button>
+                </div>
+            </div>
+
+            <div class="controls-row" id="pk-controls-play" style="display:none;">
+                <button class="btn btn-red" onclick="playerAction('fold')">ÚP BỎ</button>
+                <button class="btn btn-blue" id="btn-check-call" onclick="playerAction('check')">CHECK</button>
+                <button class="btn btn-green" onclick="toggleBetPanel(true)"> BET </button>
+            </div>
+            <div class="controls-row" id="pk-controls-start">
+                <button class="btn btn-yellow" onclick="startTexas()" style="width: 80%;">VÀO BÀN (CƯỢC: 50$)</button>
+            </div>
+        </div>
+        <div class="slot-display-panel" id="msg-pk" style="border-color:#3498db; color:#fff; font-size:16px;">Luật thi đấu chuẩn 10 xếp hạng tay bài.</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
