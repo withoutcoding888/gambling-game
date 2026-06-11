@@ -18,6 +18,7 @@
         <div class="tab active" onclick="switchTab('slot')">JACKPOT SLOT</div>
         <div class="tab" onclick="switchTab('blackjack')">BLACKJACK 3D</div>
         <div class="tab" onclick="switchTab('poker')">TEXAS HOLD'EM</div>
+        <div class="tab" onclick="switchTab('roulette')">ROULETTE</div>
     </div>
 
     <!-- ================= 1. GAME SLOT MACHINE (NEON LEVER) ================= -->
@@ -144,6 +145,45 @@
             </div>
         </div>
         <div class="slot-display-panel" id="msg-pk" style="border-color:#3498db; color:#fff; font-size:16px;">Luật thi đấu chuẩn 10 xếp hạng tay bài.</div>
+    </div>
+
+
+    <!-- ================= 4. GAME ROULETTE ================= -->
+    <div id="roulette" class="game-section">
+        <div class="standard-board">
+            
+            <!-- VÒNG QUAY ROULETTE CHUẨN 3D -->
+            <div class="rl-wheel-container">
+                <div class="rl-wheel-frame">
+                    <!-- Bánh xe quay -->
+                    <div id="rl-wheel-bg" class="rl-wheel-bg"></div>
+                    <!-- Trục giữa (Cố định) -->
+                    <div class="rl-center-glass">
+                        <div class="rl-center-knob"></div>
+                    </div>
+                    <!-- Quả bóng (Quay ngược chiều) -->
+                    <div class="rl-ball-wrapper" id="rl-ball-wrapper">
+                        <div class="rl-ball" id="rl-ball"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng chọn Chip -->
+            <div class="rl-chip-selector">
+                <p style="margin: 0 10px 0 0; color: #aaa;">Chọn Chip:</p>
+                <div class="rl-chip active" style="background:#3498db" onclick="selectRlChip(10, this)">10$</div>
+                <div class="rl-chip" style="background:#2ecc71" onclick="selectRlChip(50, this)">50$</div>
+                <div class="rl-chip" style="background:#f1c40f; color:#000;" onclick="selectRlChip(100, this)">100$</div>
+                <div class="rl-chip" style="background:#e74c3c" onclick="selectRlChip(500, this)">500$</div>
+                <button class="btn btn-red" style="padding: 5px 15px;" onclick="clearRlBets()">XÓA CƯỢC</button>
+            </div>
+
+            <!-- Bàn Cược -->
+            <div class="rl-board" id="rl-board"></div>
+
+            <button onclick="spinRoulette()" id="btn-rl-spin" class="btn btn-yellow bj-center-btn" style="width:100%; margin-top: 20px !important;">CHỐT CƯỢC & THẢ BÓNG</button>
+            <div class="slot-display-panel" id="msg-rl" style="border-color:#ffd700; color:#fff;">Đợi bạn đặt chip...</div>
+        </div>
     </div>
 
     <script src="script.js"></script>

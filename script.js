@@ -425,3 +425,216 @@ function resetPoker() {
     document.getElementById('pk-controls-start').style.display = "flex"; document.getElementById('btn-check-call').innerText = "CHECK";
     txState = 0; currentBetToCall = 0;
 }
+
+// ================= 4. LOGIC ROULETTE & ÂM THANH =================
+const rlReds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+// Trình tự chính xác của các số trên vòng quay Châu Âu
+const wheelSeq = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+
+let currentRlChip = 10;
+let rlBets = {}; 
+let isRlSpinning = false;
+let currentWheelAngle = 0;
+
+// Hệ thống tạo âm thanh va chạm tự động
+// Hệ thống tạo âm thanh va chạm (Đã chỉnh âm "Lạch Cạch" gỗ)
+// Hệ thống tạo âm thanh va chạm chuẩn "Cạch Cạch" đanh tiếng gỗ
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTickSound() {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    // Đổi sang sóng triangle (tam giác) để lấy họa âm giòn, đanh như vật rắn va chạm
+    osc.type = 'triangle'; 
+    
+    // Đẩy tần số xuất phát lên cực cao (2500Hz) lướt xuống nhanh để tạo tiếng click mộc
+    osc.frequency.setValueAtTime(2500, audioCtx.currentTime); 
+    osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.015); 
+    
+    // Ép âm lượng tắt cực bạo và cực ngắn (chỉ 0.015 giây) để loại bỏ hoàn toàn tiếng "bụp"
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.015);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.015);
+}
+
+// Khởi tạo Bàn Cược và Bánh Xe
+function initRoulette() {
+    // 1. VẼ BÁNH XE
+    const wheelBg = document.getElementById('rl-wheel-bg');
+    let gradientParts = [];
+    let html = '';
+    const anglePerSlice = 360 / 37;
+    
+    for(let i = 0; i < 37; i++) {
+        let num = wheelSeq[i];
+        let color = (num === 0) ? '#27ae60' : (rlReds.includes(num) ? '#e74c3c' : '#222');
+        
+        let startAngle = i * anglePerSlice;
+        let endAngle = (i + 1) * anglePerSlice;
+        gradientParts.push(`${color} ${startAngle}deg ${endAngle}deg`);
+        
+        // Căn số nằm giữa vạch
+        let textAngle = startAngle + anglePerSlice/2;
+        html += `<div class="rl-wheel-num" style="transform: rotate(${textAngle}deg)">${num}</div>`;
+    }
+    wheelBg.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+    wheelBg.innerHTML = html;
+
+    // 2. VẼ BÀN CƯỢC CHÍP
+    const board = document.getElementById('rl-board');
+    let boardHtml = `<div class="rl-cell rl-zero" onclick="placeRlBet('num_0')">0</div>`;
+    for (let r = 3; r >= 1; r--) {
+        for (let c = 0; c < 12; c++) {
+            let num = r + c * 3;
+            let colorClass = rlReds.includes(num) ? "rl-red" : "rl-black";
+            boardHtml += `<div class="rl-cell ${colorClass}" style="grid-row: ${4-r}; grid-column: ${c+2}" onclick="placeRlBet('num_${num}')">${num}</div>`;
+        }
+    }
+    boardHtml += `<div class="rl-cell rl-dozen" style="grid-column: 2 / span 4" onclick="placeRlBet('doz_1')">1st 12</div>`;
+    boardHtml += `<div class="rl-cell rl-dozen" style="grid-column: 6 / span 4" onclick="placeRlBet('doz_2')">2nd 12</div>`;
+    boardHtml += `<div class="rl-cell rl-dozen" style="grid-column: 10 / span 4" onclick="placeRlBet('doz_3')">3rd 12</div>`;
+    
+    boardHtml += `<div class="rl-cell rl-half" style="grid-column: 2 / span 2" onclick="placeRlBet('half_low')">1-18</div>`;
+    boardHtml += `<div class="rl-cell rl-half" style="grid-column: 4 / span 2" onclick="placeRlBet('even')">CHẴN</div>`;
+    boardHtml += `<div class="rl-cell rl-half rl-red" style="grid-column: 6 / span 2" onclick="placeRlBet('color_red')">ĐỎ</div>`;
+    boardHtml += `<div class="rl-cell rl-half rl-black" style="grid-column: 8 / span 2" onclick="placeRlBet('color_black')">ĐEN</div>`;
+    boardHtml += `<div class="rl-cell rl-half" style="grid-column: 10 / span 2" onclick="placeRlBet('odd')">LẺ</div>`;
+    boardHtml += `<div class="rl-cell rl-half" style="grid-column: 12 / span 2" onclick="placeRlBet('half_high')">19-36</div>`;
+    board.innerHTML = boardHtml;
+}
+initRoulette(); // Gọi vẽ bàn ngay lập tức
+
+function selectRlChip(amount, el) {
+    currentRlChip = amount;
+    document.querySelectorAll('.rl-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function placeRlBet(betType) {
+    if (isRlSpinning) return;
+    if (balance < currentRlChip) return alert("Bạn không đủ tiền!");
+    
+    updateBalance(-currentRlChip);
+    if (!rlBets[betType]) rlBets[betType] = 0;
+    rlBets[betType] += currentRlChip;
+    
+    // Cập nhật chip hiển thị trên bàn
+    document.querySelectorAll('.placed-chip').forEach(c => c.remove());
+    for (let type in rlBets) {
+        let cell = document.querySelector(`[onclick="placeRlBet('${type}')"]`);
+        if (cell) {
+            let chip = document.createElement('div');
+            chip.className = 'placed-chip';
+            chip.innerText = rlBets[type] >= 1000 ? (rlBets[type]/1000) + 'k' : rlBets[type];
+            cell.appendChild(chip);
+        }
+    }
+}
+
+function clearRlBets() {
+    if (isRlSpinning) return;
+    let refund = 0;
+    for (let type in rlBets) refund += rlBets[type];
+    updateBalance(refund);
+    rlBets = {};
+    document.querySelectorAll('.placed-chip').forEach(c => c.remove());
+}
+
+function spinRoulette() {
+    if (isRlSpinning) return;
+    if (Object.keys(rlBets).length === 0) return alert("Vui lòng đặt chip lên bàn trước khi quay!");
+    
+    isRlSpinning = true;
+    showMessage('msg-rl', "BÓNG ĐANG LĂN...", 'default');
+    
+    const wheelBg = document.getElementById('rl-wheel-bg');
+    const ballWrapper = document.getElementById('rl-ball-wrapper');
+    const ball = document.getElementById('rl-ball');
+    
+    // Random số trúng thưởng
+    const winIndex = Math.floor(Math.random() * 37);
+    const winningNum = wheelSeq[winIndex];
+    
+    // Tính toán góc để quay bánh xe (Đưa số trúng thưởng lên góc 12h)
+    const sliceAngle = 360 / 37;
+    const targetAngle = 360 * 5 - (winIndex * sliceAngle) - (sliceAngle / 2);
+    
+    // Reset trạng thái quay
+    wheelBg.style.transition = "none";
+    wheelBg.style.transform = `rotate(${currentWheelAngle % 360}deg)`;
+    ballWrapper.style.transition = "none";
+    ballWrapper.style.transform = `rotate(0deg)`;
+    ball.classList.remove('ball-bouncing');
+    
+    // Force Reflow
+    void wheelBg.offsetWidth;
+    
+    // Kích hoạt Quay
+    currentWheelAngle = targetAngle;
+    wheelBg.style.transition = "transform 5s cubic-bezier(0.2, 0.1, 0.2, 1)";
+    wheelBg.style.transform = `rotate(${currentWheelAngle}deg)`;
+    
+    ballWrapper.style.transition = "transform 5s cubic-bezier(0.2, 0.1, 0.2, 1)";
+    ballWrapper.style.transform = `rotate(-1440deg)`; // Bóng quay ngược chiều 4 vòng và chốt hạ ở góc 12h
+    
+    // Thêm hiệu ứng Bóng nảy rớt vào lỗ
+    ball.classList.add('ball-bouncing');
+
+    // MÔ PHỎNG ÂM THANH BÓNG LĂN CHẬM DẦN
+    let delay = 30;
+    let spinTime = 0;
+    function playBounceSound() {
+        if (!isRlSpinning) return;
+        playTickSound();
+        delay *= 1.08; // Càng quay delay càng lâu (chậm dần)
+        spinTime += delay;
+        if (spinTime < 4500) setTimeout(playBounceSound, delay);
+    }
+    playBounceSound();
+    
+    // Chờ 5s cho quay xong để chốt sổ
+    setTimeout(() => {
+        calculateRlWin(winningNum);
+        isRlSpinning = false;
+        rlBets = {};
+        setTimeout(() => {
+            if(!isRlSpinning) document.querySelectorAll('.placed-chip').forEach(c => c.remove());
+        }, 3000); 
+    }, 5000);
+}
+
+function calculateRlWin(winNum) {
+    let totalWin = 0;
+    let isRed = rlReds.includes(winNum);
+    let isBlack = (!isRed && winNum !== 0);
+    let isEven = (winNum !== 0 && winNum % 2 === 0);
+    let isOdd = (winNum !== 0 && winNum % 2 !== 0);
+    
+    for (let type in rlBets) {
+        let betAmt = rlBets[type];
+        if (type === `num_${winNum}`) totalWin += betAmt * 36;
+        if (winNum === 0) continue; 
+        
+        if (type === 'color_red' && isRed) totalWin += betAmt * 2;
+        if (type === 'color_black' && isBlack) totalWin += betAmt * 2;
+        if (type === 'even' && isEven) totalWin += betAmt * 2;
+        if (type === 'odd' && isOdd) totalWin += betAmt * 2;
+        if (type === 'half_low' && winNum >= 1 && winNum <= 18) totalWin += betAmt * 2;
+        if (type === 'half_high' && winNum >= 19 && winNum <= 36) totalWin += betAmt * 2;
+        if (type === 'doz_1' && winNum >= 1 && winNum <= 12) totalWin += betAmt * 3;
+        if (type === 'doz_2' && winNum >= 13 && winNum <= 24) totalWin += betAmt * 3;
+        if (type === 'doz_3' && winNum >= 25 && winNum <= 36) totalWin += betAmt * 3;
+    }
+    
+    if (totalWin > 0) {
+        updateBalance(totalWin);
+        showMessage('msg-rl', `SỐ ${winNum} - TRÚNG LỚN! BẠN ĂN ${totalWin}$ 🎉`, 'win');
+    } else {
+        showMessage('msg-rl', `SỐ ${winNum} - Ván này nhà cái hốt!`, 'lose');
+    }
+}
